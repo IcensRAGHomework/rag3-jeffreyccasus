@@ -14,6 +14,10 @@ dbpath = "./"
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_core.documents import Document
 
+from chromadb.utils import embedding_functions
+from langchain_community.document_loaders.csv_loader import CSVLoader
+from langchain_core.documents import Document
+
 def generate_hw01():
     # load csv
     csv_file_path = "COA_OpenData.csv"
@@ -28,7 +32,15 @@ def generate_hw01():
 
     #print_csv_detail(csv_data)
 
-
+    # embedding function
+    openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+                    api_base = gpt_emb_config['api_base'],
+                    api_key = gpt_emb_config['api_key'],
+                    api_type = gpt_emb_config['openai_type'],
+                    api_version = gpt_emb_config['api_version'],
+                    model_name = gpt_emb_config['deployment_name'], 
+                )
+    
     # create chroma
     chroma_client = chromadb.PersistentClient(dbpath)
     #collection = chroma_client.get_or_create_collection(
@@ -36,7 +48,8 @@ def generate_hw01():
         name = "TRAVEL",
         metadata = {
             "hnsw:space": "cosine"
-        }
+        },
+        embedding_function = openai_ef
     )
 
     if collection.count() !=0:
@@ -75,7 +88,7 @@ def generate_hw01():
         documents = documents_hostwords,
         metadatas = documents_metadatas)
 
-    return
+    return collection
     
 def generate_hw02(question, city, store_type, start_date, end_date):
     pass

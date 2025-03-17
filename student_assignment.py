@@ -11,13 +11,6 @@ gpt_emb_config = get_model_configuration(gpt_emb_version)
 
 dbpath = "./"
 
-from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain_core.documents import Document
-
-from chromadb.utils import embedding_functions
-from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain_core.documents import Document
-
 from chromadb.utils import embedding_functions
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_core.documents import Document
@@ -51,7 +44,13 @@ def generate_hw01():
     chroma_client = chromadb.PersistentClient(dbpath) # store in local machine
 
     # deltet old one first
-    chroma_client.delete_collection(name="TRAVEL")
+    try:
+      collection = chroma_client.get_collection(name="TRAVEL")
+      if (collection.count != 0):
+        chroma_client.delete_collection(name="TRAVEL")
+    except:
+      print("No old collection to be deleted")
+
     # create chroma
     #collection = chroma_client.get_or_create_collection(
     collection = chroma_client.create_collection(

@@ -27,19 +27,9 @@ def generate_hw01():
                     model_name = gpt_emb_config['deployment_name'],
                 )
 
-
     chroma_client = chromadb.PersistentClient(dbpath) # store in local machine
 
-    # deltet old one first on colab
-    try:
-      collection = chroma_client.get_collection(name="TRAVEL")
-      if (collection.count != 0):
-        chroma_client.delete_collection(name="TRAVEL")
-    except:
-      print("No old collection to be deleted")
-
     # create chroma
-    #collection = chroma_client.get_or_create_collection(
     collection = chroma_client.get_or_create_collection(
         name = "TRAVEL",
         metadata = {

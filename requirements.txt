@@ -2,3 +2,6 @@ pytest
 chromadb==0.5.20
 openai==1.56.0
 pandas==2.2.3
+langchain==0.3.3
+langchain-community==0.3.2
+langchain-core==0.3.10

@@ -18,6 +18,42 @@ import time
 import datetime
 
 def generate_hw01():
+    # embedding function
+    openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+                    api_base = gpt_emb_config['api_base'],
+                    api_key = gpt_emb_config['api_key'],
+                    api_type = gpt_emb_config['openai_type'],
+                    api_version = gpt_emb_config['api_version'],
+                    model_name = gpt_emb_config['deployment_name'],
+                )
+
+
+    chroma_client = chromadb.PersistentClient(dbpath) # store in local machine
+
+    # deltet old one first on colab
+    try:
+      collection = chroma_client.get_collection(name="TRAVEL")
+      if (collection.count != 0):
+        chroma_client.delete_collection(name="TRAVEL")
+    except:
+      print("No old collection to be deleted")
+
+    # create chroma
+    #collection = chroma_client.get_or_create_collection(
+    collection = chroma_client.get_or_create_collection(
+        name = "TRAVEL",
+        metadata = {
+            #使用哪一種評估方式來了解後續詢問的問題，是否接近知識點，我們這邊選擇 Cosine Distance 來作為計算
+            "hnsw:space": "cosine"
+        },
+        embedding_function = openai_ef
+    )
+
+    # [Github] Upload chroma.sqlite3, creating from colab, to github
+    # [Github] Use the existing collection from chroma.sqlite3  for auto test on github
+    if (collection.count != 0):
+      return collection
+
     # load csv
     csv_file_path = "COA_OpenData.csv"
     csv_data_name = CSVLoader(file_path = csv_file_path, source_column="Name").load()
@@ -31,36 +67,6 @@ def generate_hw01():
 
     #print(csv_data_name)
 
-    # embedding function
-    openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-                    api_base = gpt_emb_config['api_base'],
-                    api_key = gpt_emb_config['api_key'],
-                    api_type = gpt_emb_config['openai_type'],
-                    api_version = gpt_emb_config['api_version'],
-                    model_name = gpt_emb_config['deployment_name'],
-                )
-
-
-    chroma_client = chromadb.PersistentClient(dbpath) # store in local machine
-
-    # deltet old one first
-    try:
-      collection = chroma_client.get_collection(name="TRAVEL")
-      if (collection.count != 0):
-        chroma_client.delete_collection(name="TRAVEL")
-    except:
-      print("No old collection to be deleted")
-
-    # create chroma
-    #collection = chroma_client.get_or_create_collection(
-    collection = chroma_client.create_collection(
-        name = "TRAVEL",
-        metadata = {
-            #使用哪一種評估方式來了解後續詢問的問題，是否接近知識點，我們這邊選擇 Cosine Distance 來作為計算
-            "hnsw:space": "cosine"
-        },
-        embedding_function = openai_ef
-    )
 
     # store csv data into collection from chroma
     size = len(csv_data_name)

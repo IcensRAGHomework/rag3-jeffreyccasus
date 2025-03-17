@@ -39,6 +39,8 @@ def generate_hw01():
         embedding_function = openai_ef
     )
 
+    return collection
+
     # [Github] Upload chroma.sqlite3, creating from colab, to github
     # [Github] Use the existing collection from chroma.sqlite3  for auto test on github
     if (collection.count != 0):

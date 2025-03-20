@@ -235,8 +235,105 @@ def generate_hw02(question, city, store_type, start_date, end_date):
 
     return meta_list
     
+def find_store(question, store_name, new_store_name, city, store_type):
+    max_result_number = 10
+    similarity_threshold = 0.80
+
+    collection = generate_hw01()
+
+    filter_dict  = {
+        "$and": [
+            {
+                "city" : {"$in": city}
+            },
+            {
+                "type": {"$in": store_type}
+            }
+        ]
+    }
+    print(f"filter_dict = '{filter_dict}' \n ")
+
+    results = collection.query(
+        query_texts = question, # Chroma will embed this for you
+        include = ["documents", "metadatas", "distances"],
+        n_results = max_result_number,
+        where = filter_dict,
+    )
+    print(f"query result = '{results}' \n ")
+
+    # 提取結果 (包含 id, metadata, score 等資訊), 將結果按照 distance 排序
+    sorted_results = sorted(
+        zip(results["ids"][0], results["documents"][0], results["metadatas"][0], results["distances"][0]),
+        key=lambda x: x[3],  # 依照 distance 排序 (越小越相似)
+        reverse=False  # 遞增排序，確保最相似的在前
+    )
+
+    # 過濾 score (確保相似度高於 0.8，通常距離越小代表相似度越高)
+    filtered_results = [(id, doc, meta, score) for id, doc, meta, score in sorted_results if score <= (1 - similarity_threshold)]
+
+    print("<< filterd_result >>")
+    # 輸出結果
+    for id, doc, meta, score in filtered_results:
+        print(f"ID: {id}, Score: {1 - score:.4f}\nDocument: {doc}\nMetadata: {meta}\n")
+
+    # 提取 metadata 為獨立 list
+    meta_list = [meta for _, _, meta, _ in filtered_results]
+    
+    return collection, filtered_results
+
+
+# 根據 name 查找 id
+def find_id_by_name(filtered_results, target_name):
+    for id, doc, meta, score in filtered_results:
+        if "name" in meta and meta["name"] == target_name:
+            #print(f"Find id = {id} for store name = {target_name} !!")
+            return id
+    return None
+
+
+# 新增 新的 metadata 欄位和值
+def update_store_with_new_name(collection, found_id, new_metadata_key, new_metadata_value):
+    # 更新指定 ID 的 metadata，新增 key-value
+    new_metadata = {new_metadata_key: new_metadata_value}  # 請修改為你要新增的欄位和值
+    existing_meta = collection.get(found_id)["metadatas"][0]  # 取得現有 metadata
+
+
+    # 更新 metadata 的 key-value
+    existing_meta[new_metadata_key] = new_metadata_value
+
+    # 重新更新 ChromaDB 中的 metadata
+    collection.update(
+        ids = [found_id],
+        metadatas = [existing_meta]
+    )
+    print(f"Updated metadata for ID {found_id}: {existing_meta}")
+    return
+
+
 def generate_hw03(question, store_name, new_store_name, city, store_type):
-    pass
+
+    collection, filtered_results = find_store(question, store_name, new_store_name, city, store_type)
+
+    # 測試搜尋 特定店家名稱
+    found_id = find_id_by_name(filtered_results, store_name)
+    if found_id:
+        print(f"Found ID for name '{store_name}': {found_id}")
+        update_store_with_new_name(collection, found_id, "new_store_name", new_store_name)
+    else:
+        print(f"No ID found for name '{store_name}'")
+
+    # get collection after updating store name
+    collection, filtered_results = find_store(question, store_name, new_store_name, city, store_type)
+    # 輸出結果
+    #for id, doc, meta, score in filtered_results:
+    #    print(f"ID: {id}, Score: {1 - score:.4f}\nDocument: {doc}\nMetadata: {meta}\n")
+    # 提取 metadata 為獨立 list
+    meta_list = [meta for _, _, meta, _ in filtered_results]
+    # 提取 name 或 new_name 作為獨立 list
+    name_list = [meta.get("new_store_name", meta.get("name")) for meta in meta_list if "name" in meta or "new_store_name" in meta]
+
+
+    return name_list
     
 def demo(question):
     chroma_client = chromadb.PersistentClient(path=dbpath)
